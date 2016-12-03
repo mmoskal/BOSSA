@@ -37,6 +37,11 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+
+#ifdef __WIN32__
+#include <windows.h>
+#endif
 
 #include "Devices.h"
 
@@ -59,6 +64,24 @@ static vector<string>
 listDirsAt(string path)
 {
     vector<string> res;
+
+#ifdef __WIN32__
+    (void)path;
+
+    uint32_t drives = GetLogicalDrives();
+    for (int letter = 'A'; letter <= 'Z'; letter++) {
+        int driveNo = letter - 'A';
+        if (drives & (1 << driveNo)) {
+            char buf[5] = "A:\\";
+            buf[0] = letter;
+            uint32_t type = GetDriveType(buf);
+            if (type == 2) {
+                buf[2] = 0;
+                res.push_back(buf);
+            }
+        }
+    }
+#else
     DIR *d = opendir(path.c_str());
     struct dirent *entry;
 
@@ -67,6 +90,7 @@ listDirsAt(string path)
         if (entry->d_type == DT_DIR)
             res.push_back(path + "/" + entry->d_name);
     }
+#endif
 
     return res;
 }
@@ -80,8 +104,10 @@ getDrives(bool info = false)
     vector<string> dirs;
     vector<string> res;
 
-#ifdef __DARWIN_C_LEVEL
+#if defined(__APPLE__)
     dirs = listDirsAt("/Volumes");
+#elif defined(__WIN32__)
+    dirs = listDirsAt("/");
 #else
     dirs = listDirsAt(string("/media/") + getenv("USER"));
     if (dirs.size() == 0)
@@ -89,7 +115,7 @@ getDrives(bool info = false)
 #endif
 
     char buffer[BLK_SIZE];
-    for (int i = 0; i < dirs.size(); ++i)
+    for (uint32_t i = 0; i < dirs.size(); ++i)
     {
         string filename = dirs[i] + "/INFO_UF2.TXT";
         FILE *f = fopen(filename.c_str(), "rt");
@@ -176,7 +202,6 @@ void infoUF2()
 
 void writeUF2(const char *filename)
 {
-    // ifdef __WIN32__
     vector<string> drives = getDrives();
 
     if (drives.size() == 0)
@@ -190,7 +215,7 @@ void writeUF2(const char *filename)
     fseek(bin, 0L, SEEK_END);
     uint32_t sz = ftell(bin);
 
-    for (int i = 0; i < drives.size(); ++i)
+    for (uint32_t i = 0; i < drives.size(); ++i)
     {
         flashBinFile(bin, sz, ATSAMD_BOOTLOADER_SIZE, drives[i] + "/NEW.UF2");
     }
