@@ -75,7 +75,7 @@ listDirsAt(string path)
 #define BLK_PAYLOAD 256
 
 static vector<string>
-getDrives()
+getDrives(bool info = false)
 {
     vector<string> dirs;
     vector<string> res;
@@ -99,17 +99,23 @@ getDrives()
             fread(buffer, 1, BLK_SIZE - 1, f);
             fclose(f);
 
-            char *ptr = strstr(buffer, "Board-ID: ");
-            if (ptr)
+            if (info)
             {
-                ptr += 10;
-                char *end = ptr;
-                while (*end && *end != '\r' && *end != '\n')
-                    end++;
-                *end = 0;
+                printf("\n*** UF2 drive at %s, info:\n%s\n", dirs[i].c_str(), buffer);
             }
-
-            printf("Found UF2 drive at %s (%s)\n", dirs[i].c_str(), ptr);
+            else
+            {
+                char *ptr = strstr(buffer, "Board-ID: ");
+                if (ptr)
+                {
+                    ptr += 10;
+                    char *end = ptr;
+                    while (*end && *end != '\r' && *end != '\n')
+                        end++;
+                    *end = 0;
+                }
+                printf("Found UF2 drive at %s (%s)\n", dirs[i].c_str(), ptr);
+            }
             res.push_back(dirs[i]);
         }
     }
@@ -159,6 +165,13 @@ static void flashBinFile(FILE *bin, uint32_t sz, uint32_t addr, string dest)
     if (totalBlocks != currBlock)
         throw UF2Error("File size changed.");
     printf("Wrote %d blocks to %s\n", currBlock, dest.c_str());
+}
+
+void infoUF2()
+{
+    vector<string> drives = getDrives(true);
+    if (drives.size() == 0)
+        printf("No drives found.");
 }
 
 void writeUF2(const char *filename)

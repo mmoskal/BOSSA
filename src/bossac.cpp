@@ -323,14 +323,19 @@ main(int argc, char* argv[])
 
         if (config.uf2)
         {
-            if (!config.write)
+            if ((!config.info && !config.write) || config.read)
             {
                 fprintf(stderr, "Only -w currently supported with -2\n");
                 return 1;
             }
-            timer_start();
-            writeUF2(argv[args]);
-            printf("done in %5.3f seconds\n", timer_stop());
+            if (config.info)
+                infoUF2();
+            if (config.write)
+            {
+                timer_start();
+                writeUF2(argv[args]);
+                printf("done in %5.3f seconds\n", timer_stop());
+            }
             return 0;
         }
         else if (config.port)

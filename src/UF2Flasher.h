@@ -35,5 +35,6 @@
 #include <stdio.h>
 
 void writeUF2(const char *filename);
+void infoUF2();
 
 #endif // _UF2FLASHER_H
