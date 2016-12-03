@@ -38,6 +38,7 @@
 #include "PortFactory.h"
 #include "FlashFactory.h"
 #include "Flasher.h"
+#include "UF2Flasher.h"
 
 using namespace std;
 
@@ -63,6 +64,7 @@ public:
     bool debug;
     bool help;
     bool forceUsb;
+    bool uf2;
     string forceUsbArg;
 
     int readArg;
@@ -89,6 +91,7 @@ BossaConfig::BossaConfig()
     info = false;
     help = false;
     forceUsb = false;
+    uf2 = false;
 
     readArg = 0;
     bootArg = 1;
@@ -189,6 +192,11 @@ static Option opts[] =
       'R', "reset", &config.reset,
       { ArgNone },
       "reset CPU (if supported)"
+    },
+    {
+      '2', "uf2", &config.uf2,
+      { ArgNone },
+      "flash using UF2 MSD bootloader"
     }
 };
 
@@ -313,7 +321,19 @@ main(int argc, char* argv[])
             }
         }
 
-        if (config.port)
+        if (config.uf2)
+        {
+            if (!config.write)
+            {
+                fprintf(stderr, "Only -w currently supported with -2\n");
+                return 1;
+            }
+            timer_start();
+            writeUF2(argv[args]);
+            printf("done in %5.3f seconds\n", timer_stop());
+            return 0;
+        }
+        else if (config.port)
         {
             bool res;
             if (config.forceUsb)
